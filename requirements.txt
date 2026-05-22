@@ -3,3 +3,4 @@ folium>=0
 streamlit
 pandas
 plotly
+matplotlib>=3.7.0
