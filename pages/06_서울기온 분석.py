@@ -8,13 +8,18 @@ import os
 # 1. 데이터 로드 및 전처리
 @st.cache_data
 def load_data():
-    # 현재 실행 중인 app.py 파일의 절대 경로를 기준 폴더로 설정합니다.
+    # 현재 파일(pages/app.py)의 절대 경로를 찾습니다.
     current_dir = os.path.dirname(os.path.abspath(__file__))
-    file_path = os.path.join(current_dir, 'seoul.csv')
+    
+    # ❗ 중요: 'pages' 폴더보다 한 단계 위(상위 폴더)에 있는 'seoul.csv'를 가리키도록 설정합니다.
+    file_path = os.path.join(current_dir, '..', 'seoul.csv')
+    
+    # 경로가 올바르게 잡혔는지 절대 경로로 깔끔하게 정돈합니다.
+    file_path = os.path.abspath(file_path)
     
     # 파일 존재 여부 확인 후 명확한 예외 처리
     if not os.path.exists(file_path):
-        raise FileNotFoundError(f"'{file_path}' 위치에서 seoul.csv 파일을 찾을 수 없습니다. GitHub 저장소에 파일이 올바르게 업로드되었는지 확인해주세요.")
+        raise FileNotFoundError(f"'{file_path}' 위치에서 seoul.csv 파일을 찾을 수 없습니다. 파일이 상위 폴더에 있는지 다시 한번 확인해주세요.")
     
     # CSV 파일 읽기
     df = pd.read_csv(file_path)
@@ -35,7 +40,7 @@ def load_data():
     df['일'] = df['날짜'].dt.day
     return df
 
-# 데이터 불러오기 실행
+# --- 이하 코드(사용자 입력, 예측, Plotly 그래프 부분)는 이전과 동일합니다 ---
 try:
     df = load_data()
 except Exception as e:
@@ -47,7 +52,7 @@ st.title("📅 서울 기온 분석 및 미래 예측")
 
 # 2. 사용자 입력 (사이드바)
 st.sidebar.header("설정")
-selected_month = st.sidebar.selectbox("월을 선택하세요", sorted(df['월'].unique()), index=9) # 기본값 10월
+selected_month = st.sidebar.selectbox("월을 선택하세요", sorted(df['월'].unique()), index=9)
 selected_day = st.sidebar.selectbox("일을 선택하세요", sorted(df[df['월'] == selected_month]['일'].unique()))
 
 # 미래 예측 연도 선택
@@ -59,7 +64,7 @@ future_year = st.sidebar.number_input(
     value=2030
 )
 
-# 3. 데이터 필터링 (오타 수정: '연to' -> '연도')
+# 3. 데이터 필터링
 filtered_df = df[(df['월'] == selected_month) & (df['일'] == selected_day)].sort_values('연도')
 
 if filtered_df.empty:
@@ -70,7 +75,6 @@ else:
     y_max = filtered_df['최고기온(℃)'].values
     y_min = filtered_df['최저기온(℃)'].values
     
-    # 모델 학습 및 미래 예측
     model_max = LinearRegression().fit(X, y_max)
     model_min = LinearRegression().fit(X, y_min)
     
@@ -86,7 +90,7 @@ else:
     with col2:
         st.metric(label=f"🔮 {future_year}년 예상 최저기온", value=f"{pred_min:.2f} °C")
         
-    # 기존 데이터에 예측 데이터 임시 병합 (그래프 표시용)
+    # 데이터 병합 (그래프용)
     future_row = pd.DataFrame({
         '연도': [future_year],
         '최고기온(℃)': [pred_max],
@@ -94,10 +98,9 @@ else:
     })
     plot_df = pd.concat([filtered_df, future_row], ignore_index=True)
 
-    # 5. Plotly를 활용한 인터랙티브 그래프 그리기
+    # 5. Plotly 그래프 그리기
     fig = go.Figure()
 
-    # 과거 최고 기온 데이터
     fig.add_trace(go.Scatter(
         x=filtered_df['연도'], y=filtered_df['최고기온(℃)'],
         mode='lines+markers', name='최고기온 (과거)',
@@ -105,7 +108,6 @@ else:
         hovertemplate='<b>%{x}년 최고기온</b><br>%{y:.1f} °C<extra></extra>'
     ))
 
-    # 미래 예측 최고 기온 (점선)
     fig.add_trace(go.Scatter(
         x=plot_df['연도'].iloc[-2:], y=plot_df['최고기온(℃)'].iloc[-2:],
         mode='lines+markers', name='최고기온 (예측)',
@@ -113,7 +115,6 @@ else:
         hovertemplate='<b>%{x}년 최고기온(예측)</b><br>%{y:.1f} °C<extra></extra>'
     ))
 
-    # 과거 최저 기온 데이터
     fig.add_trace(go.Scatter(
         x=filtered_df['연도'], y=filtered_df['최저기온(℃)'],
         mode='lines+markers', name='최저기온 (과거)',
@@ -121,7 +122,6 @@ else:
         hovertemplate='<b>%{x}년 최저기온</b><br>%{y:.1f} °C<extra></extra>'
     ))
 
-    # 미래 예측 최저 기온 (점선)
     fig.add_trace(go.Scatter(
         x=plot_df['연도'].iloc[-2:], y=plot_df['최저기온(℃)'].iloc[-2:],
         mode='lines+markers', name='최저기온 (예측)',
@@ -129,7 +129,6 @@ else:
         hovertemplate='<b>%{x}년 최저기온(예측)</b><br>%{y:.1f} °C<extra></extra>'
     ))
 
-    # 레이아웃 설정
     fig.update_layout(
         title=dict(text="날짜별 기온 분석", font=dict(size=20), x=0.5),
         xaxis_title="연도",
