@@ -7,7 +7,7 @@ st.set_page_config(
     layout="centered"
 )
 
-# 2. MBTI별 데이터 설정 (특징, 추천 음식, 설명, 이미지 이모지)
+# 2. MBTI별 데이터 설정
 mbti_food_data = {
     "ISTJ": {"food": "국밥 (설렁탕/돼지국밥)", "desc": "전통적이고 든든하며, 배신하지 않는 확실하고 효율적인 한 끼!", "emoji": "🍲"},
     "ISFJ": {"food": "집밥 스타일 백반", "desc": "정성이 가득 담겨있고 마음을 따뜻하고 편안하게 해주는 집밥.", "emoji": "🍱"},
@@ -32,10 +32,15 @@ st.title("✨ MBTI별 찰떡궁합 추천 음식 ✨")
 st.write("당신의 MBTI를 선택하시면 가장 잘 어울리는 음식을 추천해 드립니다.")
 st.markdown("---")
 
-# 4. 사이드바 - MBTI 선택
-st.sidebar.header("⚙️ 선택 창")
-mbti_list = list(mbti_food_data.keys())
-selected_mbti = st.sidebar.selectbox("당신의 MBTI는 무엇인가요?", mbti_list)
+# 4. 메인 화면 중앙에 MBTI 선택 창 배치
+# 빈 열을 좌우에 두어 선택 창이 가운데로 모이게 조절합니다.
+left_col, center_col, right_col = st.columns([1, 2, 1])
+
+with center_col:
+    mbti_list = list(mbti_food_data.keys())
+    selected_mbti = st.selectbox("당신의 MBTI는 무엇인가요?", mbti_list)
+
+st.markdown("---")
 
 # 5. 결과 화면 출력
 if selected_mbti:
@@ -43,7 +48,7 @@ if selected_mbti:
     
     st.subheader(f"🔮 {selected_mbti} 유형을 위한 추천")
     
-    # 카드 형태의 깔끔한 레이아웃
+    # 결과 레이아웃
     with st.container():
         col1, col2 = st.columns([1, 4])
         with col1:
